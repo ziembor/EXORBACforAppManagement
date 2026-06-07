@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & publish release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build, analyze, and test
+        shell: pwsh
+        run: ./build.ps1 -Task All
+
+      - name: Package module
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          $zip = "EXORBACforAppManagement-$version.zip"
+          Compress-Archive -Path ./output/EXORBACforAppManagement/* -DestinationPath $zip -Force
+          "ZIP=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create '${{ github.ref_name }}' "$env:ZIP" --title '${{ github.ref_name }}' --generate-notes
