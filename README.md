@@ -221,7 +221,7 @@ the module zip attached.
 
 Work on feature branches and open a PR into `main`; CI must be green. When adding a role, update
 both role tables (`$roleMap` in `Private/Get-NormalizeRole.ps1` and `$shortRoleMap` in
-`Public/New-RBACforAppEntry.ps1`). See [`AGENTS.md`](CLAUDE.md) for deeper architecture notes.
+`Public/New-RBACforAppEntry.ps1`). See [`AGENTS.md`](AGENTS.md) for deeper architecture notes.
 
 ## License
 
