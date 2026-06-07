@@ -136,6 +136,43 @@ function Invoke-Build {
     $null = Test-ModuleManifest -Path (Join-Path $dest "$ModuleName.psd1")
     Write-Host "Built module at $dest" -ForegroundColor Green
 }
+function Invoke-Publish {
+    Write-Host '==> Publish' -ForegroundColor Cyan
+
+    if (-not $NuGetApiKey) {
+        throw "No API key supplied. Pass -NuGetApiKey or set `$env:PSGALLERY_API_KEY (https://www.powershellgallery.com/account/apikeys)."
+    }
+
+    $dest = Join-Path $OutputPath $ModuleName
+    if (-not (Test-Path (Join-Path $dest "$ModuleName.psd1"))) {
+        throw "Built module not found at $dest. Run './build.ps1 -Task Build' (or -Task All) first."
+    }
+    $manifest = Test-ModuleManifest -Path (Join-Path $dest "$ModuleName.psd1")
+
+    Write-Host "About to publish $ModuleName $($manifest.Version) from $dest to the PowerShell Gallery." -ForegroundColor Yellow
+    Write-Host 'This is effectively irreversible: a published version can be unlisted but not deleted.' -ForegroundColor Yellow
+    if (-not $Force) {
+        $answer = Read-Host "Type the version ($($manifest.Version)) to confirm, or anything else to abort"
+        if ($answer -ne [string]$manifest.Version) {
+            Write-Host 'Publish aborted (confirmation did not match).' -ForegroundColor Yellow
+            return
+        }
+    }
+
+    # Prefer PSResourceGet (same rationale as Invoke-Init: talks to PSGallery directly, no legacy
+    # NuGet provider bootstrap), falling back to the legacy PowerShellGet Publish-Module.
+    $resourceGet = Get-Module Microsoft.PowerShell.PSResourceGet -ListAvailable |
+        Sort-Object Version -Descending | Select-Object -First 1
+    if ($resourceGet) {
+        Import-Module $resourceGet -Force
+        Publish-PSResource -Path $dest -ApiKey $NuGetApiKey -Repository PSGallery
+    }
+    else {
+        Publish-Module -Path $dest -NuGetApiKey $NuGetApiKey -Repository PSGallery
+    }
+
+    Write-Host "Published $ModuleName $($manifest.Version) to PSGallery." -ForegroundColor Green
+}
 
 foreach ($t in (Resolve-TaskList -Requested $Task)) {
     switch ($t) {
