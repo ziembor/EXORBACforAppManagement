@@ -5,8 +5,7 @@ Ensures the scoped Microsoft 365 Unified Group used by New-RBACforAppEntry exist
 .DESCRIPTION
 New-RBACforAppUnifiedGroup creates a private, hidden Unified Group (when it does not already exist)
 to act as the recipient scope for Exchange Online application RBAC. The group is first created with
-the smallest set of essential attributes (DisplayName/Name/Alias, AccessType Private, the
-creation-only HiddenGroupMembershipEnabled, and the owner/bootstrap member); the remaining settings
+the smallest set of essential attributes (DisplayName/Name/Alias, AccessType Private, and the owner/bootstrap member); the remaining settings
 (member edit, auto-subscribe, calendar subscribe, language, subscription, address-list visibility,
 and connectors) are then applied via Set-UnifiedGroup. If the group already exists it is left in
 place and a warning is emitted. A summary object describing the resolved group is returned.
@@ -108,7 +107,6 @@ function New-RBACforAppUnifiedGroup {
         Write-Debug -Message ("  -Name            : '{0}'" -f $Name)
         Write-Debug -Message ("  -Alias           : '{0}'" -f $Name)
         Write-Debug -Message ("  -AccessType      : Private")
-        Write-Debug -Message ("  -HiddenGroupMembershipEnabled : True (creation-only)")
         Write-Debug -Message ("  -ManagedBy       : '{0}' (requested: '{1}')" -f $resolvedOwner, $ManagedBy)
         Write-Debug -Message ("  -Members (count) : {0}  Values: [{1}]" -f $initialMembers.Count, (($initialMembers | Where-Object { $_ }) -join ', '))
         Write-Debug -Message ("  Calling context  : TenantId='{0}'; CallerAccount='{1}'" -f (Get-MgContext | Select-Object -ExpandProperty TenantId), (Get-MgContext | Select-Object -ExpandProperty Account))
@@ -123,7 +121,6 @@ function New-RBACforAppUnifiedGroup {
                 -Name $Name `
                 -Alias $Name `
                 -AccessType Private `
-                -HiddenGroupMembershipEnabled:$true `
                 -ManagedBy $resolvedOwner `
                 -Members $initialMembers `
                 -ErrorAction Stop
@@ -150,7 +147,6 @@ function New-RBACforAppUnifiedGroup {
             Write-Debug -Message ("  PrimarySmtpAddress           : '{0}'" -f $nug.PrimarySmtpAddress)
             Write-Debug -Message ("  Alias                        : '{0}'" -f $nug.Alias)
             Write-Debug -Message ("  AccessType                   : '{0}'" -f $nug.AccessType)
-            Write-Debug -Message ("  HiddenGroupMembershipEnabled : '{0}'" -f $nug.HiddenGroupMembershipEnabled)
             Write-Debug -Message ("  WhenCreatedUTC               : '{0}'" -f $nug.WhenCreatedUTC)
 
             Write-Verbose -Message ("Applying post-creation settings to Unified Group '{0}'." -f $Name)
@@ -160,7 +156,6 @@ function New-RBACforAppUnifiedGroup {
             Write-Debug -Message ("  -AlwaysSubscribeMembersToCalendarEvents : False")
             Write-Debug -Message ("  -Language                               : en-us")
             Write-Debug -Message ("  -SubscriptionEnabled                    : False")
-            Write-Debug -Message ("  -HiddenFromAddressListsEnabled          : True")
             Write-Debug -Message ("  -ConnectorsEnabled                      : False")
             Set-UnifiedGroup -Identity $Name `
                 -IsMemberAllowedToEditContent $false `
@@ -178,7 +173,6 @@ function New-RBACforAppUnifiedGroup {
                 Write-Debug -Message ("  Identity                     : '{0}'" -f $configuredGroup.Identity)
                 Write-Debug -Message ("  HiddenFromAddressListsEnabled: '{0}'" -f $configuredGroup.HiddenFromAddressListsEnabled)
                 Write-Debug -Message ("  AccessType                   : '{0}'" -f $configuredGroup.AccessType)
-                Write-Debug -Message ("  HiddenGroupMembershipEnabled : '{0}'" -f $configuredGroup.HiddenGroupMembershipEnabled)
                 Write-Debug -Message ("  SubscriptionEnabled          : '{0}'" -f $configuredGroup.SubscriptionEnabled)
                 Write-Debug -Message ("  ConnectorsEnabled            : '{0}'" -f $configuredGroup.ConnectorsEnabled)
                 Write-Debug -Message ("  ManagedBy                    : '{0}'" -f (($configuredGroup.ManagedBy | Where-Object { $_ }) -join ', '))
