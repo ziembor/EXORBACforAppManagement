@@ -54,6 +54,9 @@ Describe 'New-RBACforAppEntry -WhatIf' {
     BeforeEach {
         Mock -ModuleName EXORBACforAppManagement Get-MgContext { [pscustomobject]@{ TenantId = 'tenant-1'; Account = 'admin@contoso.com' } }
         Mock -ModuleName EXORBACforAppManagement Get-MgServicePrincipal { $script:Sp }
+        Mock -ModuleName EXORBACforAppManagement New-RBACforAppUnifiedGroup {
+            [pscustomobject]@{ OwnerRequested = 'owner@contoso.com'; OwnerAdded = 'owner@contoso.com' }
+        }
         Mock -ModuleName EXORBACforAppManagement Get-UnifiedGroup { [pscustomobject]@{ DisplayName = 'g'; Identity = 'g'; ManagedBy = @() } }
         Mock -ModuleName EXORBACforAppManagement Get-Recipient { [pscustomobject]@{ PrimarySmtpAddress = 'shared@contoso.com' } }
         Mock -ModuleName EXORBACforAppManagement New-UnifiedGroup { }
@@ -74,6 +77,21 @@ Describe 'New-RBACforAppEntry -WhatIf' {
         $r.PSObject.Properties.Name | Should -Contain 'OwnerRequested'
         $r.PSObject.Properties.Name | Should -Contain 'OwnerAdded'
         $r.OwnerRequested | Should -Be 'owner@contoso.com'
+    }
+
+    It 'uses AccessGroupName as the Unified Group scope' {
+        $r = New-RBACforAppEntry -RegisteredAppName 'Contoso' -AccessGroupName 'RBAC-AppScope-Contoso' -Role 'Mail.Send' -WhatIf
+
+        $r.UnifiedGroupName | Should -Be 'RBAC-AppScope-Contoso'
+        Should -Invoke -ModuleName EXORBACforAppManagement -CommandName New-RBACforAppUnifiedGroup -Times 1 -ParameterFilter {
+            $Name -eq 'RBAC-AppScope-Contoso'
+        }
+    }
+
+    It 'throws when AccessGroupName and GroupPrefix are both explicitly set' {
+        {
+            New-RBACforAppEntry -RegisteredAppName 'Contoso' -AccessGroupName 'RBAC-AppScope-Contoso' -GroupPrefix 'Um365Prod' -WhatIf
+        } | Should -Throw '*cannot be used together*'
     }
 
     It 'does not perform any mutating EXO calls under -WhatIf' {

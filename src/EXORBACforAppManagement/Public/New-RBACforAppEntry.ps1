@@ -37,6 +37,11 @@ Recipient that will be assigned as the Unified Group owner.
 .PARAMETER GroupPrefix
 Prefix used when building the Unified Group name.
 
+.PARAMETER AccessGroupName
+Explicit Unified Group name to use for RBAC scoping instead of generating a name from
+GroupPrefix and the resolved service principal display name. Cannot be combined with
+an explicit GroupPrefix value.
+
 .PARAMETER BootstrapMember
 Optional initial member passed during Unified Group creation.
 
@@ -57,6 +62,12 @@ New-RBACforAppEntry -SpObjectId '11111111-2222-3333-4444-555555555555' -Role 'Ap
 
 Uses the service principal object id directly and creates multiple application role
 assignments scoped to the generated Unified Group.
+
+.EXAMPLE
+New-RBACforAppEntry -RegisteredAppName 'Contoso Mail App' -AccessGroupName 'RBAC-AppScope-ContosoMail' -Role 'Mail.Send'
+
+Uses an explicit Unified Group name for scoping and assigns the requested RBAC role to
+the application against that group.
 
 .OUTPUTS
 PSCustomObject
@@ -105,6 +116,10 @@ function New-RBACforAppEntry {
         [ValidateNotNullOrEmpty()]
         [string] $GroupPrefix = "Um365RAo1",
 
+        [Parameter()]
+        [ValidateNotNullOrEmpty()]
+        [string] $AccessGroupName,
+
         # Optional placeholder member (dont validate as email)
         [Parameter()]
         [string] $BootstrapMember = "GraphAPI-Dummy"
@@ -117,6 +132,10 @@ function New-RBACforAppEntry {
     }
 
     process {
+        if ($PSBoundParameters.ContainsKey('AccessGroupName') -and $PSBoundParameters.ContainsKey('GroupPrefix')) {
+            throw "Parameters -AccessGroupName and -GroupPrefix cannot be used together."
+        }
+
         $result = [ordered]@{
             ParameterSet      = $PSCmdlet.ParameterSetName
             IdentityInput     = $RegisteredAppName
@@ -170,8 +189,13 @@ function New-RBACforAppEntry {
             $result.SpObjectId      = $sp.Id
 
             # --- Ensure Unified Group for scoping (delegated to New-RBACforAppUnifiedGroup)
-            $umGroupName = "{0}-{1}" -f $GroupPrefix, $sp.DisplayName
-            $umGroupName = Get-SafeName($umGroupName)
+            if ($PSBoundParameters.ContainsKey('AccessGroupName')) {
+                $umGroupName = $AccessGroupName
+            }
+            else {
+                $umGroupName = "{0}-{1}" -f $GroupPrefix, $sp.DisplayName
+                $umGroupName = Get-SafeName($umGroupName)
+            }
             $result.UnifiedGroupName = $umGroupName
 
             Write-Verbose -Message ("Checking Unified Group '{0}' for service principal '{1}' ({2})." -f $umGroupName, $sp.DisplayName, $sp.Id)
