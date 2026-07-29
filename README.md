@@ -12,7 +12,7 @@ The three functions form a **create → assign → read** flow and share the sam
 
 | Function | Step | What it does |
 | --- | --- | --- |
-| [`New-RegisteredApp`](#new-registeredapp) | create | Creates an Entra app registration and (by default) its service principal. |
+| [`New-RegisteredApp`](#new-registeredapp) | create | Creates an Entra app registration and (by default) its service principal. NOTE: required high privledges, I use it only in testing environment - as on production it's covered by separation of duty and done by 3rd party to my team pipeline |
 | [`New-RBACforAppEntry`](#new-rbacforappentry) | assign | Creates a scoped Unified Group, ensures the EXO service principal, and assigns EXO Application roles scoped to that group. |
 | [`Get-RBACforAppEntry`](#get-rbacforappentry) | read | Lists the EXO Application-role assignments. |
 | [`Get-RegisteredAppWithPermission`](#get-registeredappwithpermission) | inventory | Lists distinct registered applications that currently hold supported EXO Application roles. |
@@ -74,6 +74,8 @@ Get-RegisteredAppWithPermission
 
 Creates an Entra application registration and, unless `-SkipServicePrincipal`, its service
 principal. Emits `AppId` / `ServicePrincipalId` so it can pipe into `New-RBACforAppEntry`.
+
+NOTE: required high privledges, I use it only in testing environment - as on production it's covered by separation of duty and done by 3rd party to my team pipeline
 
 ```powershell
 New-RegisteredApp -DisplayName 'Contoso Mail App' -WhatIf -Verbose
